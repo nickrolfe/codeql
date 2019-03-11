@@ -521,7 +521,7 @@ membervariables(
 );
 
 globalvariables(
-    unique int id: @globalvariable,
+    int id: @globalvariable,
     int type_id: @type ref,
     string name: string ref
 );
