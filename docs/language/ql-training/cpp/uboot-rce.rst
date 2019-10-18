@@ -60,13 +60,13 @@ We want to find cases where data read from the network is used in a call to ``me
   - Sources should be calls to ``ntohl``, ``ntohll``, or ``ntohs``.
   - The sink should be the size argument of a call to ``memcpy``.
 
-Additional vulnerabilities
-==========================
+You just found 9 vulnerabilities
+================================
 
-Your query should have found 9 vulnerabilities. Can you refine it to find any more?
+What's next?
 
-Suggestions:
+Some suggestions for improving the query to find more bugs:
+
+- Generalize your query to find other untrusted inputs beyond networking, e.g. the ext4 filesystem.
 
 - There is a call through the function pointer ``udp_packet_handler`` with arguments using ``ntohs``. Can you customize your taint-tracking query to track flow through this call to the various handler functions?
-
-.. TODO
