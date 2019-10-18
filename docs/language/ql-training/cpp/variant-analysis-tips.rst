@@ -136,3 +136,39 @@ Guards: API
 - ``GuardCondition`` represents an expression in the program that is a condition.
 - The ``GuardCondition.controls(BasicBlock, boolean)`` predicate represents the set of basic blocks controlled by each guard
   condition, and includes whether they are controlled in the true case or false case.
+
+Global value numbering
+======================
+
+How can we tell when two expressions compute the same value?
+
+  .. code-block:: cpp
+
+      void f(int x, int y) {
+         h(x+y, x+y);
+      }
+
+      void g(int x) {
+         int z = x*2;
+         h(x*2, z);
+      }
+
+The ``GlobalValueNumbering`` library associates each expression with a ``GVN`` value. If two expressions have the same ``GVN``, they compute the same value.
+
+.. note:: Many of the examples from the slide deck on control flow were prone to false positives, because they did not take intervening assignments to local variables into account. Global value numbering can sometimes help with eliminating such false positives.
+
+
+Example: global value numbering
+===============================
+
+A query to find comparisons where both sides have the same value.
+
+.. code-block:: ql
+
+   import cpp
+   import semmle.code.cpp.valuenumbering.GlobalValueNumbering
+
+   from ComparisonOperation comp, GVN gvn
+   where globalValueNumber(comp.getLeftOperand())  = gvn and
+         globalValueNumber(comp.getRightOperand()) = gvn
+   select comp
