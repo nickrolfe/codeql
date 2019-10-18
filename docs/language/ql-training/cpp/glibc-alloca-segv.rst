@@ -116,8 +116,60 @@ Taint Tracking
 
 We are interested in calls to ``alloca`` where the allocation size is controlled by a value read from a file.
 
-1. Find calls to ``fopen``. (Be aware that ``fopen`` is another macro.)
-2. Write a taint tracking query. The source should be a call to ``fopen`` and the sink should be the size argument of an unsafe call to ``alloca``.
+1. Find calls to ``fopen``.
+
+  - Be aware that ``fopen`` is another macro.
+  
+2. Write a taint tracking query.
+
+  - The source should be a call to ``fopen``.
+  - The sink should be the size argument of an unsafe call to ``alloca``.
+
+.. note:: To help you get started, here is the boilerplate for the query:
+
+  .. code-block:: ql
+
+    /**
+    * @kind path-problem
+    */
+
+    import cpp
+    import semmle.code.cpp.rangeanalysis.SimpleRangeAnalysis
+    import semmle.code.cpp.dataflow.TaintTracking
+    import semmle.code.cpp.models.interfaces.DataFlow
+    import semmle.code.cpp.controlflow.Guards
+    import DataFlow::PathGraph
+
+    // Track taint through `__strnlen`.
+    class StrlenFunction extends DataFlowFunction {
+      StrlenFunction() { this.getName().matches("%str%len%") }
+
+      override predicate hasDataFlow(FunctionInput i, FunctionOutput o) {
+        i.isInParameter(0) and o.isOutReturnValue()
+      }
+    }
+
+    // Track taint through `__getdelim`.
+    class GetDelimFunction extends DataFlowFunction {
+      GetDelimFunction() { this.getName().matches("%get%delim%") }
+
+      override predicate hasDataFlow(FunctionInput i, FunctionOutput o) {
+        i.isInParameter(3) and o.isOutParameterPointer(0)
+      }
+    }
+
+    class Config extends TaintTracking::Configuration {
+      Config() { this = "fopen_to_alloca_taint" }
+
+      override predicate isSource(DataFlow::Node source) { any() }
+
+      override predicate isSink(DataFlow::Node sink) { any() }
+    }
+
+    from Config cfg, DataFlow::PathNode source, DataFlow::PathNode sink
+    where cfg.hasFlowPath(source, sink)
+    select sink, source, sink, "fopen flows to alloca"
+
 
 Bonus: exploiting the bug
 ===============================
