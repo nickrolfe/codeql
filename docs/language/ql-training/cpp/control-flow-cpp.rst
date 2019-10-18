@@ -188,7 +188,32 @@ More control flow
 Basic blocks
 ============
 
-``BasicBlock`` represents basic blocks, that is, straight-line sequences of control flow nodes without branching.
+Basic blocks are straight-line sequences of control flow nodes without branching.
+
+.. container:: column-left
+
+   .. code-block:: cpp
+
+      res = -1;
+      if (p) {
+        res = *p;
+      }
+      return res;
+ 
+.. container:: column-right
+  
+  .. image:: ../_static-training/basic_blocks.png
+    :width: 80%
+
+.. note::
+
+   This example has three basic blocks, shown in red. In general, a data flow node starts a new basic block if it has no predecessors (like node 1), more than one predecessor (like node 3), or if one of its predecessors has multiple successors (like node 2).
+
+
+Basic blocks in QL
+==================
+
+Represented by the ``BasicBlock`` class.
 
 - ``ControlFlowNode BasicBlock.getNode(int)``
 - ``BasicBlock BasicBlock.getASuccessor()``
@@ -214,14 +239,65 @@ Write a query to find unreachable basic blocks.
 
    This query has a good number of false positives on Chakra, many of them to do with templating and macros.
 
-Guard conditions
-================
+Dominance
+=========
 
-A ``GuardCondition`` is a ``Boolean`` condition that controls one or more basic blocks in the sense that it is known to be true/false at the entry of those blocks.
+- A control flow node ``nd1`` dominates control flow node ``nd2`` if ``nd2`` cannot be reached without going through ``nd1``.
 
-- ``GuardCondition.controls(BasicBlock bb, boolean outcome):`` the entry of bb can only be reached if the guard evaluates to outcome
+- In other words, if control reaches ``nd2``, we know that any action performed by ``nd1`` must have already happened.
 
-- ``GuardCondition.comparesLt, GuardCondition.ensuresLt, GuardCondition.comparesEq:`` auxiliary predicates to identify conditions that guarantee that one expression is less than/equal to another
+- Similarly, dominance can also be computed at the basic-block level, which is usually more efficient.
+
+- Standard library predicates to check intra-procedural dominance:
+
+  - ``dominates(ControlFlowNode, ControlFlowNode)``
+
+  - ``bbDominates(BasicBlock, BasicBlock)``
+
+Example: dominance
+==================
+
+.. container:: column-left
+
+   .. code-block:: cpp
+
+      res = -1;
+      if (p) {
+        res = *p;
+      }
+      return res;
+
+  - ① dominates ②, ③ and ④
+  - ② dominates ③ and ④
+  - ③ does not dominate ④
+ 
+.. container:: column-right
+  
+  .. image:: ../_static-training/dominance_cfg.png
+    :width: 80%
+
+Exercise: misplaced null check
+==============================
+
+Write a query to find pointer dereferences that dominate a null check on the same variable, which suggests a bug or logic error.
+
+**Hint**: The classes ``PointerDereferenceExpr``, ``EQExpr`` and ``Literal`` may be useful, as well as the member predicate ``Literal.getValue()``. 
+
+.. rst-class:: build
+
+.. code-block:: ql
+
+    import cpp
+
+    from PointerDereferenceExpr deref, LocalScopeVariable v, EQExpr eq
+    where
+      deref.getOperand() = v.getAnAccess() and
+      eq.getAnOperand() = v.getAnAccess() and
+      eq.getAnOperand().(Literal).getValue() = "0" and
+      dominates(deref, eq)
+    select deref, eq
+
+.. note:: This query gives false positives on many snapshots, and a true positive on facebook/rocksdb.
 
 Further materials
 =================
