@@ -20,6 +20,7 @@ Agenda
 - Useful libraries for C/C++
    - Range analysis
    - Guards
+   - Global value numbering
 
 .. rst-class:: background2
 
@@ -130,12 +131,37 @@ QL comes with the ``Guards`` library, which can be used to determine which ``Bas
 
 Would report the last two ``val[x]`` accesses from the previous slide.
 
+Another guard example
+=====================
+
+Finding pointer dereferences that are guarded by a ``null`` check.
+
+   .. code-block:: ql
+
+    predicate isSafeDeref(PointerDereferenceExpr deref) {
+      exists(GuardCondition guard, Variable v, NullValue null |
+        deref.getOperand() = v.getAnAccess() and
+        guard.ensuresEq(v.getAnAccess(), null, 0, deref.getBasicBlock(), false)
+      )
+    }
+
+
 Guards: API
 ===========
 
 - ``GuardCondition`` represents an expression in the program that is a condition.
-- The ``GuardCondition.controls(BasicBlock, boolean)`` predicate represents the set of basic blocks controlled by each guard
-  condition, and includes whether they are controlled in the true case or false case.
+
+- ``GuardCondition.controls(BasicBlock, boolean)``
+   
+   - Represents the set of basic blocks controlled by each guard condition, and includes whether they are controlled in the true case or false case.
+
+- ``GuardCondition.ensuresEq(Expr, Expr, int, BasicBlock, boolean)``
+   
+   - Basic blocks controlled by an equality comparison between two expressions.
+
+- ``GuardCondition.ensuresLt(Expr, Expr, int, BasicBlock, boolean)``
+
+   - Basic blocks controlled by a relational operation (``<=``, ``<``, ``>``, ``>=``) on two expressions.
 
 Global value numbering
 ======================
